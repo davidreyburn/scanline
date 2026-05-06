@@ -253,12 +253,30 @@ def main() -> None:
         _loading = LoadingScreen()
         _evdev   = EvdevReader()
 
-    # Get the pygame X11 window ID so we can raise/lower it relative to
-    # renderer windows (Chromium kiosk, MPV fullscreen).
-    _wm_id: int = (pygame.display.get_wm_info().get('window', 0)
-                   if _HAVE_OSD and not windowed else 0)
-
     _x11_env = {**os.environ, 'DISPLAY': ':0'}
+
+    # Find the OSD window's X11 ID via wmctrl.  pygame's get_wm_info()['window']
+    # returns an SDL/Wayland surface ID — a different number to what wmctrl and
+    # xdotool see.  wmctrl -l reliably lists WM-managed windows by title.
+    _wm_id: int = 0
+    if _HAVE_OSD and not windowed:
+        try:
+            lines = subprocess.run(
+                ['wmctrl', '-l'], env=_x11_env,
+                capture_output=True, timeout=2.0,
+            ).stdout.decode().splitlines()
+            # wmctrl -l format: "0xNNNN  desktop hostname  title"
+            for _ln in lines:
+                _parts = _ln.split(None, 3)
+                if len(_parts) >= 4 and _parts[3].strip() == 'Scanline':
+                    _wm_id = int(_parts[0], 16)
+                    break
+            if _wm_id:
+                print(f'[osd] X11 window id: 0x{_wm_id:x}', flush=True)
+            else:
+                print('[osd] warning: Scanline window not found via wmctrl', flush=True)
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            pass
 
     def _x11_run(*args: str) -> None:
         try:
