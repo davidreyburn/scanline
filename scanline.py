@@ -99,7 +99,7 @@ def make_renderer(channel: Dict[str, Any], settings: Dict[str, Any],
                   windowed: bool = False) -> BaseRenderer:
     ch_type = channel.get('type', 'script')
 
-    if ch_type == 'media':
+    if ch_type in ('media', 'stream', 'plex_playlist'):
         from renderers.mpv_renderer import MpvRenderer
         return MpvRenderer(channel, settings)
 
@@ -107,11 +107,12 @@ def make_renderer(channel: Dict[str, Any], settings: Dict[str, Any],
         from renderers.topo_renderer import TopoRenderer
         return TopoRenderer(channel, settings, windowed=windowed)
 
-    # Phase 5: stream, plex_playlist → MpvRenderer
-    # Phase 5: webpage               → ChromiumRenderer
+    if ch_type == 'webpage' and sys.platform != 'win32':
+        from renderers.chromium_renderer import ChromiumRenderer
+        return ChromiumRenderer(channel, settings)
 
     from renderers.dummy_renderer import DummyRenderer
-    if ch_type not in ('topo', 'stream', 'plex_playlist', 'webpage', 'script'):
+    if ch_type not in ('topo', 'webpage', 'script'):
         print(f'  [warn] unknown channel type {ch_type!r} — using DummyRenderer',
               flush=True)
     return DummyRenderer(channel, settings)
