@@ -258,27 +258,62 @@ def main() -> None:
     _wm_id: int = (pygame.display.get_wm_info().get('window', 0)
                    if _HAVE_OSD and not windowed else 0)
 
+    _x11_env = {**os.environ, 'DISPLAY': ':0'}
+
+    def _x11_run(*args: str) -> None:
+        try:
+            subprocess.run(list(args), env=_x11_env,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           timeout=1.0)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
+    # WM_CLASS names for renderer types whose windows use the WM fullscreen
+    # layer (openbox places fullscreen above everything, xdotool windowraise
+    # can't break through — we must strip fullscreen state first via wmctrl).
+    _FULLSCREEN_WM_CLASS: Dict[str, str] = {
+        'webpage':      'chromium',
+        'stream':       'mpv',
+        'media':        'mpv',
+        'plex_playlist': 'mpv',
+    }
+
+    def _renderer_wm_ids() -> list:
+        """Return X11 window IDs (hex strings) for the current renderer."""
+        ch_type = channels.get(current_num, {}).get('type', '')
+        wm_class = _FULLSCREEN_WM_CLASS.get(ch_type, '')
+        if not wm_class:
+            return []
+        try:
+            out = subprocess.run(
+                ['xdotool', 'search', '--onlyvisible', '--class', wm_class],
+                env=_x11_env, capture_output=True, timeout=1.0,
+            ).stdout.decode().split()
+            # wmctrl wants hex IDs with leading 0x
+            return [hex(int(w)) for w in out if w.strip()]
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            return []
+
+    def _set_renderer_fullscreen(add: bool) -> None:
+        """Add or remove _NET_WM_STATE_FULLSCREEN on the renderer's windows via wmctrl."""
+        prop = 'add,fullscreen' if add else 'remove,fullscreen'
+        for wid in _renderer_wm_ids():
+            _x11_run('wmctrl', '-i', '-r', wid, '-b', prop)
+
     def _raise_osd() -> None:
-        if _wm_id and not windowed:
-            try:
-                subprocess.run(
-                    ['xdotool', 'windowraise', str(_wm_id)],
-                    env={**os.environ, 'DISPLAY': ':0'},
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                )
-            except OSError:
-                pass
+        if not (_wm_id and not windowed):
+            return
+        # Renderer windows live in the WM fullscreen layer; strip that state so
+        # our OSD (normal layer) can appear on top, then raise it.
+        _set_renderer_fullscreen(add=False)
+        _x11_run('xdotool', 'windowraise', str(_wm_id))
 
     def _lower_osd() -> None:
-        if _wm_id and not windowed:
-            try:
-                subprocess.run(
-                    ['xdotool', 'windowlower', str(_wm_id)],
-                    env={**os.environ, 'DISPLAY': ':0'},
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                )
-            except OSError:
-                pass
+        if not (_wm_id and not windowed):
+            return
+        _x11_run('xdotool', 'windowlower', str(_wm_id))
+        # Put the renderer back in fullscreen (no-op if channel was switched).
+        _set_renderer_fullscreen(add=True)
 
     def _set_osd(new_state: str, pre_select: Optional[int] = None) -> None:
         nonlocal _osd_state

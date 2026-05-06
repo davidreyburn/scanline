@@ -39,7 +39,9 @@ apt-get install -y --no-install-recommends \
     console-data \
     evdev \
     gcc \
-    make
+    make \
+    xdotool \
+    wmctrl
 
 # --- Xwrapper: allow any user to run X -------------------------------------
 echo "  [xwrap] setting allowed_users=anybody"
