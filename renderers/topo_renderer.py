@@ -667,12 +667,13 @@ def _run_renderer(ctl_fifo: str, palette_name: str, speed_name: str,
         return flat.transpose(1, 0, 2).copy(), N_color  # (CHAR_H, N_g*N_color, CHAR_W)
 
     # -- State
-    pal_idx  = next((i for i, p in enumerate(PALETTES)
-                     if p['name'] == palette_name), 4)  # default: PHOSPHOR
-    mode_idx = 0
+    pal_idx  = random.randrange(len(PALETTES))
+    mode_idx = random.randrange(len(CHAR_MODES))
     spd_idx  = next((i for i, (n, _) in enumerate(SPEEDS)
                      if n == speed_name), 1)             # default: MED
     paused   = False
+    print(f'[topo] start: {PALETTES[pal_idx]["name"]} / {CHAR_MODES[mode_idx]["name"]}',
+          file=sys.stderr, flush=True)
 
     drift_x, drift_y = 0.0, 0.0
     vel_angle = random.uniform(0, 2 * math.pi)
