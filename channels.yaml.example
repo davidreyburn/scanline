@@ -21,6 +21,7 @@ channels:
     uri: "http://YOUR_PLEX_SERVER_IP:32400"
     playlist_id: "YOUR_PLAYLIST_ID"    # numeric ID from Plex API
     token: "YOUR_PLEX_TOKEN"           # raw token value (not "X-Plex-Token=...")
+    shuffle: true                      # optional: randomise playback order
 
   - name: "Local Media"
     number: 5

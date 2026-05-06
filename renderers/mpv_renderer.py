@@ -82,6 +82,8 @@ class MpvRenderer(BaseRenderer):
             if m3u:
                 self._tmp_m3u = m3u
                 args += [f'--playlist={m3u}', '--loop-playlist=inf']
+                if ch.get('shuffle', False):
+                    args.append('--shuffle')
             else:
                 print(f'[mpv] plex_playlist: failed to build M3U — falling back to URI',
                       flush=True)
