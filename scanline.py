@@ -17,6 +17,7 @@ import os
 import select
 import signal
 import stat
+import subprocess
 import sys
 import time
 from typing import Any, Dict, Optional
@@ -252,6 +253,33 @@ def main() -> None:
         _loading = LoadingScreen()
         _evdev   = EvdevReader()
 
+    # Get the pygame X11 window ID so we can raise/lower it relative to
+    # renderer windows (Chromium kiosk, MPV fullscreen).
+    _wm_id: int = (pygame.display.get_wm_info().get('window', 0)
+                   if _HAVE_OSD and not windowed else 0)
+
+    def _raise_osd() -> None:
+        if _wm_id and not windowed:
+            try:
+                subprocess.run(
+                    ['xdotool', 'windowraise', str(_wm_id)],
+                    env={**os.environ, 'DISPLAY': ':0'},
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+            except OSError:
+                pass
+
+    def _lower_osd() -> None:
+        if _wm_id and not windowed:
+            try:
+                subprocess.run(
+                    ['xdotool', 'windowlower', str(_wm_id)],
+                    env={**os.environ, 'DISPLAY': ':0'},
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+            except OSError:
+                pass
+
     def _set_osd(new_state: str, pre_select: Optional[int] = None) -> None:
         nonlocal _osd_state
         if new_state == OSD_LOADING and _loading is not None:
@@ -259,6 +287,10 @@ def main() -> None:
         if new_state == OSD_GUIDE and _guide is not None:
             _guide.open(pre_select)
         _osd_state = new_state
+        if new_state == OSD_OFF:
+            _lower_osd()
+        else:
+            _raise_osd()
 
     # --- Renderer state machine -----------------------------------------------
     renderer:           Optional[BaseRenderer] = None

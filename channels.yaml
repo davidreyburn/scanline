@@ -28,10 +28,15 @@ channels:
     path: "/mnt/media/ambient"
     loop: true
 
+  - name: "Claude Plays Pokemon"
+    number: 7
+    type: stream
+    uri: "https://www.twitch.tv/claudeplayspokemon"
+
   - name: "WeatherStar 4000"
     number: 6
     type: webpage
-    uri: "http://192.168.1.192:8082/?latLonQuery=43206&kiosk=true&settings-mediaPlaying-boolean=true"
+    uri: "http://192.168.1.192:8090/?latLonQuery=43206&kiosk=true&settings-mediaPlaying-boolean=true"
 
 settings:
   default_channel: 2
