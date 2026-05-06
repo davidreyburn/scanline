@@ -41,7 +41,8 @@ apt-get install -y --no-install-recommends \
     gcc \
     make \
     xdotool \
-    wmctrl
+    wmctrl \
+    unclutter
 
 # --- Xwrapper: allow any user to run X -------------------------------------
 echo "  [xwrap] setting allowed_users=anybody"

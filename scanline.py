@@ -247,6 +247,7 @@ def main() -> None:
         else:
             _screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption('Scanline')
+        pygame.mouse.set_visible(False)
         _screen.fill((0, 0, 0))
         pygame.display.flip()
         _guide   = Guide(channels)
