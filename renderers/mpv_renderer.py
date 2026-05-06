@@ -118,15 +118,15 @@ class MpvRenderer(BaseRenderer):
             return None
 
         lines = ['#EXTM3U']
-        for video in root.iter('Video'):
-            title = video.get('title', 'Unknown')
-            for part in video.iter('Part'):
+        for item in [*root.iter('Video'), *root.iter('Track')]:
+            title = item.get('title', 'Unknown')
+            for part in item.iter('Part'):
                 key = part.get('key', '')
                 if key:
                     stream_url = f'{server}{key}?X-Plex-Token={token}'
                     lines.append(f'#EXTINF:-1,{title}')
                     lines.append(stream_url)
-                    break  # one Part per Video is enough
+                    break
 
         if len(lines) == 1:
             print('[mpv] plex_playlist: no playable items found', flush=True)
