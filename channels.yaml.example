@@ -2,7 +2,7 @@ channels:
   - name: "Aleph Monitor"
     number: 1
     type: webpage
-    uri: "http://192.168.1.192:8081"
+    uri: "http://YOUR_SERVER_IP:8081"
 
   - name: "ASCII Topography"
     number: 2
@@ -18,9 +18,9 @@ channels:
   - name: "Plex — Synthwave Mix"
     number: 4
     type: plex_playlist
-    uri: "http://192.168.1.192:32400"
-    playlist_id: "YOUR_PLAYLIST_ID"
-    token: "YOUR_PLEX_TOKEN"
+    uri: "http://YOUR_PLEX_SERVER_IP:32400"
+    playlist_id: "YOUR_PLAYLIST_ID"    # numeric ID from Plex API
+    token: "YOUR_PLEX_TOKEN"           # raw token value (not "X-Plex-Token=...")
 
   - name: "Local Media"
     number: 5
@@ -28,15 +28,15 @@ channels:
     path: "/mnt/media/ambient"
     loop: true
 
+  - name: "WeatherStar 4000"
+    number: 6
+    type: webpage
+    uri: "http://YOUR_WS4KP_SERVER:8090/index.html?latLonQuery=YOUR_ZIP&kiosk=true&settings-wide-checkbox=true&settings-mediaPlaying-boolean=true"
+
   - name: "Claude Plays Pokemon"
     number: 7
     type: stream
     uri: "https://www.twitch.tv/claudeplayspokemon"
-
-  - name: "WeatherStar 4000"
-    number: 6
-    type: webpage
-    uri: "http://192.168.1.192:8090/index.html?latLonQuery=43206&kiosk=true&settings-wide-checkbox=true&settings-mediaPlaying-boolean=true"
 
 settings:
   default_channel: 2

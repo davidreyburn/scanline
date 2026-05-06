@@ -4,3 +4,4 @@ __pycache__/
 *.so
 state.json
 .claude/
+channels.yaml
