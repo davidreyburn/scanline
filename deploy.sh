@@ -51,11 +51,22 @@ if [ "$DO_COMPILE" -eq 1 ]; then
 fi
 
 echo ""
-echo "Done. To run on the Pi:"
-echo "  ssh chives@192.168.1.43"
-echo "  xinit ~/scanline/launch.sh -- :0 vt1 -nolisten tcp"
+# --- Restart -----------------------------------------------------------------
+echo "==> Restarting scanline..."
+if ssh "$HOST" "systemctl is-active --quiet scanline 2>/dev/null"; then
+    ssh "$HOST" "sudo systemctl restart scanline"
+    echo "Done — service restarted."
+elif ssh "$HOST" "test -p /tmp/scanline-ctl"; then
+    ssh "$HOST" "echo quit > /tmp/scanline-ctl"
+    echo "Done — sent quit to FIFO (manual session)."
+else
+    echo "Done — scanline not running; start with:"
+    echo "  systemctl start scanline  (if service installed)"
+    echo "  xinit ~/scanline/launch.sh -- :0 vt1 -nolisten tcp"
+fi
+
 echo ""
-echo "Control via FIFO (from a second SSH session):"
+echo "Control via FIFO:"
 echo "  echo 'next'      | sudo tee /tmp/scanline-ctl"
 echo "  echo 'channel 2' | sudo tee /tmp/scanline-ctl"
 echo "  echo 'quit'      | sudo tee /tmp/scanline-ctl"

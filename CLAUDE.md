@@ -18,7 +18,7 @@ Scanline is a Raspberry Pi 3 headless channel manager. It boots via systemd to a
 | 4a — Topo Foundation | C extension, PSF font loader, pygame renderer | ✅ Done |
 | 4b — Topo Polish | all palettes/modes, FIFO control | ✅ Done |
 | 5 — Chromium + Streams | chromium_renderer.py, yt-dlp streams, Plex | ✅ Done |
-| 6 — Hardening | crash recovery, Pi 3 tuning, install.sh, deploy.sh | ⬜ |
+| 6 — Hardening | crash recovery, Pi 3 tuning, install.sh, deploy.sh | ✅ Done |
 
 ---
 

@@ -1,0 +1,26 @@
+[Unit]
+Description=Scanline channel manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chives
+Environment=HOME=/home/chives
+WorkingDirectory=/home/chives/scanline
+
+# Keep trying forever — crash recovery is handled inside scanline.py too,
+# but systemd restarts the whole session if something fatal exits.
+Restart=always
+RestartSec=5
+
+ExecStartPre=/bin/rm -f /tmp/.X0-lock /tmp/.X11-unix/X0
+ExecStart=/usr/bin/xinit /home/chives/scanline/launch.sh -- :0 vt1 -nolisten tcp
+ExecStop=/bin/kill -TERM $MAINPID
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scanline
+
+[Install]
+WantedBy=multi-user.target

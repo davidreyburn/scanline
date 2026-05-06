@@ -237,6 +237,9 @@ def main() -> None:
     _evdev:   Optional[Any] = None
 
     if _HAVE_OSD:
+        # Disable SDL audio — scanline doesn't use it and the ALSA driver
+        # produces constant underrun noise in the journal.
+        os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
         pygame.init()
         if windowed:
             _screen = pygame.display.set_mode((1280, 720))
