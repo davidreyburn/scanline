@@ -36,7 +36,7 @@ channels:
   - name: "WeatherStar 4000"
     number: 6
     type: webpage
-    uri: "http://192.168.1.192:8090/index.html?latLonQuery=43206&kiosk=true&settings-mediaPlaying-boolean=true"
+    uri: "http://192.168.1.192:8090/index.html?latLonQuery=43206&kiosk=true&settings-wide-checkbox=true&settings-mediaPlaying-boolean=true"
 
 settings:
   default_channel: 2

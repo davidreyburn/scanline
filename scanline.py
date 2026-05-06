@@ -540,7 +540,7 @@ def main() -> None:
                 pygame.display.flip()
                 pygame.event.pump()
 
-            time.sleep(POLL_INTERVAL)
+            time.sleep(0.016 if _osd_state != OSD_OFF else POLL_INTERVAL)
 
     finally:
         if renderer is not None:

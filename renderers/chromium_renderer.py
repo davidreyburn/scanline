@@ -49,7 +49,7 @@ class ChromiumRenderer(BaseRenderer):
 
     def _build_args(self) -> List[str]:
         uri = self.channel.get('uri', 'about:blank')
-        return [
+        args = [
             _CHROMIUM_BIN,
             '--kiosk',
             '--noerrdialogs',
@@ -62,8 +62,16 @@ class ChromiumRenderer(BaseRenderer):
             '--disable-features=Translate',
             '--no-first-run',
             '--disable-session-crashed-bubble',
-            uri,
         ]
+        # Pass ALSA output device so Chromium uses HDMI rather than defaulting
+        # to the headphone jack.  Strip the "alsa/" prefix that MPV uses.
+        # Ignored on systems where Chromium uses PulseAudio/PipeWire instead.
+        audio_dev = self.settings.get('audio_device', '')
+        if audio_dev:
+            alsa_dev = audio_dev.removeprefix('alsa/')
+            args.append(f'--alsa-output-device={alsa_dev}')
+        args.append(uri)
+        return args
 
     def is_ready(self) -> bool:
         if sys.platform == 'win32':

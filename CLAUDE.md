@@ -106,6 +106,7 @@ Openbox places `_NET_WM_STATE_FULLSCREEN` windows in a layer above all normal wi
 - Delete `SingletonLock`, `SingletonSocket`, `SingletonCookie` before each spawn — Chromium's GPU/zygote child processes survive `killpg` (different process groups) and hold `SingletonSocket` open. A new Chromium instance connects to that socket, prints "Opening in existing browser session." and exits immediately. Deleting all three files breaks the handshake.
 - Readiness check: `socket.create_connection(('127.0.0.1', 9222))` — debug port opens once browser engine is initialised.
 - WM_CLASS when using `--user-data-dir`: becomes `chromium (/tmp/scanline-chromium).Chromium` (space in class name) — `wmctrl -lx` field [2] is just `chromium` after whitespace split, so the `'chromium' in parts[2].lower()` check still works.
+- Audio: Chromium passes `--alsa-output-device=<device>` derived from `settings.audio_device` (strips `alsa/` prefix). This routes audio to HDMI on ALSA systems. Ignored when PulseAudio/PipeWire is active — in that case, set the default PulseAudio sink to the HDMI output instead.
 
 ## Channels config
 
@@ -116,6 +117,11 @@ Edit `channels.yaml` over SSH. Fill in real values for:
 Restart to reload: `sudo systemctl restart scanline`
 
 **WeatherStar URL**: use `/index.html?...` not `/?...`. The nginx config on the WeatherStar server (192.168.1.192:8090) redirects any root path with query params via HTTP 302 to a backend port that is not reachable from the Pi. `/index.html` is served as a static file and bypasses that redirect rule.
+
+**WeatherStar URL params** (ws4kp query-param naming convention):
+- Toggles use `-checkbox` suffix: `settings-wide-checkbox=true` (widescreen 16:9), `settings-scanLines-checkbox=true`
+- State/value params use `-boolean` or `-select`: `settings-mediaPlaying-boolean=true`, `settings-speed-select=1.0`
+- Direct kiosk: `kiosk=true`
 
 ## Things to watch on Pi 3
 
