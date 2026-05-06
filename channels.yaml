@@ -1,0 +1,40 @@
+channels:
+  - name: "Aleph Monitor"
+    number: 1
+    type: webpage
+    uri: "http://192.168.1.192:8081"
+
+  - name: "ASCII Topography"
+    number: 2
+    type: topo
+    palette: "PHOSPHOR"
+    speed: "MED"
+
+  - name: "Lo-Fi Radio"
+    number: 3
+    type: stream
+    uri: "https://www.youtube.com/watch?v=jfKfPfyJRdk"
+
+  - name: "Plex — Synthwave Mix"
+    number: 4
+    type: plex_playlist
+    uri: "http://192.168.1.192:32400"
+    playlist_id: "YOUR_PLAYLIST_ID"
+    token: "YOUR_PLEX_TOKEN"
+
+  - name: "Local Media"
+    number: 5
+    type: media
+    path: "/mnt/media/ambient"
+    loop: true
+
+  - name: "WeatherStar 4000"
+    number: 6
+    type: webpage
+    uri: "http://192.168.1.192:8082/?latLonQuery=43206&kiosk=true&settings-mediaPlaying-boolean=true"
+
+settings:
+  default_channel: 2
+  resume_last_channel: true
+  loading_timeout_s: 10
+  audio_device: "alsa/sysdefault:CARD=vc4hdmi"

@@ -1,0 +1,5 @@
+pyyaml
+requests
+numpy
+pygame>=2.5; sys_platform == "linux"
+evdev; sys_platform == "linux"
