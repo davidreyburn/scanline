@@ -89,6 +89,24 @@ topo/
 - **Renderer factory in `make_renderer()`** — add `elif channel['type'] == X` for each new renderer type
 - **Topo blit strategy** — `render_chars_32_cm` writes directly into `pygame.surfarray.pixels2d(screen)` (column-major, (W,H) layout) to avoid a transpose copy. Achieves ~9 FPS at 1920×1080; bottleneck is X11 `XShmPutImage` (~67ms/frame).
 
+## OSD window stacking (important)
+
+Openbox places `_NET_WM_STATE_FULLSCREEN` windows in a layer above all normal windows unconditionally — `xdotool windowraise` cannot break through it. The working approach:
+
+- **Raise OSD**: `xdotool windowminimize <renderer_id>` (sends `_NET_WM_STATE_HIDDEN`, vacates screen entirely while preserving `_NET_WM_STATE_FULLSCREEN` hint), then `wmctrl -i -a <osd_id>` to raise+focus OSD.
+- **Lower OSD**: `wmctrl -i -a <renderer_id>` to restore from minimized — openbox re-enters fullscreen automatically because the hint was preserved.
+- **Finding renderer windows**: use `wmctrl -lx` (field 2 = WM_CLASS). `xdotool search --class` does not enumerate SDL2 or Chromium windows on this Pi.
+- **Finding OSD window**: use `wmctrl -l` filtered by title `'Scanline'`. `pygame.display.get_wm_info()['window']` returns an SDL surface ID, not the X11 window ID.
+- **OSD pygame window**: uses `pygame.FULLSCREEN` which SDL2 maps to `_NET_WM_STATE_FULLSCREEN` — it is in the same WM layer as Chromium/MPV, so stacking within that layer matters.
+
+## Chromium renderer notes
+
+- `--user-data-dir=/tmp/scanline-chromium` — fixed profile path so singleton files are predictable.
+- `--disable-dev-shm-usage` — Pi 3's `/dev/shm` is too small for media-heavy pages (WeatherStar etc.); this flag makes Chromium use the real filesystem instead.
+- Delete `SingletonLock`, `SingletonSocket`, `SingletonCookie` before each spawn — Chromium's GPU/zygote child processes survive `killpg` (different process groups) and hold `SingletonSocket` open. A new Chromium instance connects to that socket, prints "Opening in existing browser session." and exits immediately. Deleting all three files breaks the handshake.
+- Readiness check: `socket.create_connection(('127.0.0.1', 9222))` — debug port opens once browser engine is initialised.
+- WM_CLASS when using `--user-data-dir`: becomes `chromium (/tmp/scanline-chromium).Chromium` (space in class name) — `wmctrl -lx` field [2] is just `chromium` after whitespace split, so the `'chromium' in parts[2].lower()` check still works.
+
 ## Channels config
 
 Edit `channels.yaml` over SSH. Fill in real values for:
@@ -97,9 +115,12 @@ Edit `channels.yaml` over SSH. Fill in real values for:
 
 Restart to reload: `sudo systemctl restart scanline`
 
+**WeatherStar URL**: use `/index.html?...` not `/?...`. The nginx config on the WeatherStar server (192.168.1.192:8090) redirects any root path with query params via HTTP 302 to a backend port that is not reachable from the Pi. `/index.html` is served as a static file and bypasses that redirect rule.
+
 ## Things to watch on Pi 3
 
 - Terminus 12×24 PSF font must be available: `apt install console-data`
 - `topo_noise.so` must be compiled on the Pi: `cd topo/ && bash build_noise.sh`
 - Pi user must be in `input` group for evdev: `sudo usermod -a -G input pi`
 - Enable swap before running Chromium channels: `dphys-swapfile` in `install.sh`
+- MPV 0.40+ breaking changes: `--gpu-context=x11egl` (was `x11`); `--stream-lavf-reconnect-streamed` removed; live stream yt-dlp format must use `best[...]` before merged formats.

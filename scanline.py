@@ -286,52 +286,65 @@ def main() -> None:
         except (OSError, subprocess.TimeoutExpired):
             pass
 
-    # WM_CLASS names for renderer types whose windows use the WM fullscreen
-    # layer (openbox places fullscreen above everything, xdotool windowraise
-    # can't break through — we must strip fullscreen state first via wmctrl).
+    # WM_CLASS substrings for renderer types that run fullscreen X11 windows.
+    # Used to find their X11 IDs via wmctrl -lx.
     _FULLSCREEN_WM_CLASS: Dict[str, str] = {
-        'webpage':      'chromium',
-        'stream':       'mpv',
-        'media':        'mpv',
+        'webpage':       'chromium',
+        'stream':        'mpv',
+        'media':         'mpv',
         'plex_playlist': 'mpv',
     }
 
     def _renderer_wm_ids() -> list:
-        """Return X11 window IDs (hex strings) for the current renderer."""
+        """Return X11 window IDs (hex strings) for the current renderer.
+
+        Uses wmctrl -lx which reliably enumerates all WM-managed windows
+        (xdotool search fails to find SDL2 and Chromium windows on this Pi).
+        """
         ch_type = channels.get(current_num, {}).get('type', '')
-        wm_class = _FULLSCREEN_WM_CLASS.get(ch_type, '')
-        if not wm_class:
+        wm_class_prefix = _FULLSCREEN_WM_CLASS.get(ch_type, '')
+        if not wm_class_prefix:
             return []
         try:
-            out = subprocess.run(
-                ['xdotool', 'search', '--onlyvisible', '--class', wm_class],
-                env=_x11_env, capture_output=True, timeout=1.0,
-            ).stdout.decode().split()
-            # wmctrl wants hex IDs with leading 0x
-            return [hex(int(w)) for w in out if w.strip()]
-        except (OSError, subprocess.TimeoutExpired, ValueError):
+            lines = subprocess.run(
+                ['wmctrl', '-lx'], env=_x11_env,
+                capture_output=True, timeout=1.0,
+            ).stdout.decode().splitlines()
+            ids = []
+            for line in lines:
+                parts = line.split()
+                # wmctrl -lx: 0xWID  DESK  WM_CLASS  [HOST]  TITLE
+                if len(parts) < 3 or not parts[0].startswith('0x'):
+                    continue
+                if wm_class_prefix in parts[2].lower():
+                    ids.append(parts[0])
+            return ids
+        except (OSError, subprocess.TimeoutExpired):
             return []
-
-    def _set_renderer_fullscreen(add: bool) -> None:
-        """Add or remove _NET_WM_STATE_FULLSCREEN on the renderer's windows via wmctrl."""
-        prop = 'add,fullscreen' if add else 'remove,fullscreen'
-        for wid in _renderer_wm_ids():
-            _x11_run('wmctrl', '-i', '-r', wid, '-b', prop)
 
     def _raise_osd() -> None:
         if not (_wm_id and not windowed):
             return
-        # Renderer windows live in the WM fullscreen layer; strip that state so
-        # our OSD (normal layer) can appear on top, then raise it.
-        _set_renderer_fullscreen(add=False)
-        _x11_run('xdotool', 'windowraise', str(_wm_id))
+        # Minimize the renderer window entirely so it vacates the screen
+        # (xdotool windowminimize sends _NET_WM_STATE_HIDDEN).  Simply
+        # stripping fullscreen and raising doesn't work — openbox keeps
+        # fullscreen-layer windows above normal-layer windows unconditionally.
+        # Minimizing removes the window from view while keeping the process
+        # alive; the _NET_WM_STATE_FULLSCREEN hint is preserved so restoring
+        # it later re-enters fullscreen automatically.
+        for wid in _renderer_wm_ids():
+            _x11_run('xdotool', 'windowminimize', wid)
+        # wmctrl -i -a raises + focuses the OSD window.
+        _x11_run('wmctrl', '-i', '-a', hex(_wm_id))
 
     def _lower_osd() -> None:
         if not (_wm_id and not windowed):
             return
-        _x11_run('xdotool', 'windowlower', str(_wm_id))
-        # Put the renderer back in fullscreen (no-op if channel was switched).
-        _set_renderer_fullscreen(add=True)
+        # Activate the renderer window — restores from minimized state and
+        # returns focus.  openbox re-enters fullscreen automatically because
+        # _NET_WM_STATE_FULLSCREEN was preserved while it was minimized.
+        for wid in _renderer_wm_ids():
+            _x11_run('wmctrl', '-i', '-a', wid)
 
     def _set_osd(new_state: str, pre_select: Optional[int] = None) -> None:
         nonlocal _osd_state

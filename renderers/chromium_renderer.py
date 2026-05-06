@@ -1,3 +1,4 @@
+import os
 import shutil
 import socket
 import subprocess
@@ -7,6 +8,7 @@ from typing import List
 from renderers.base_renderer import BaseRenderer
 
 _DEBUG_PORT = 9222
+_USER_DATA_DIR = '/tmp/scanline-chromium'
 # Bookworm ships 'chromium'; older Pi OS / Ubuntu ship 'chromium-browser'
 _CHROMIUM_BIN = next(
     (b for b in ('chromium', 'chromium-browser') if shutil.which(b)),
@@ -27,6 +29,17 @@ class ChromiumRenderer(BaseRenderer):
     """
 
     def _do_spawn(self) -> None:
+        # Remove all Singleton* files before spawning.  Chromium's GPU and
+        # zygote child processes may outlive the main process (different
+        # process groups survive killpg) and still hold SingletonSocket open.
+        # A new Chromium connects to that socket, gets a response, prints
+        # "Opening in existing browser session." and immediately exits.
+        # Deleting the socket file breaks that handshake.
+        for name in ('SingletonLock', 'SingletonSocket', 'SingletonCookie'):
+            try:
+                os.remove(os.path.join(_USER_DATA_DIR, name))
+            except OSError:
+                pass
         self.process = subprocess.Popen(
             self._build_args(),
             start_new_session=True,
@@ -44,6 +57,8 @@ class ChromiumRenderer(BaseRenderer):
             '--incognito',
             '--autoplay-policy=no-user-gesture-required',
             f'--remote-debugging-port={_DEBUG_PORT}',
+            f'--user-data-dir={_USER_DATA_DIR}',
+            '--disable-dev-shm-usage',
             '--disable-features=Translate',
             '--no-first-run',
             '--disable-session-crashed-bubble',
